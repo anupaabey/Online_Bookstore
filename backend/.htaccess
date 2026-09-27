@@ -1,0 +1,22 @@
+# Without this, Apache/XAMPP commonly does NOT forward the "Authorization"
+# header to PHP at all — getallheaders() and $_SERVER['HTTP_AUTHORIZATION']
+# come back empty even though the app is sending "Authorization: Bearer ..."
+# correctly. That's what causes every protected endpoint (orders, users,
+# add/edit book, cart) to return "Unauthorized. Please log in." for every
+# account, while public GET endpoints keep working fine.
+
+# Apache 2.4.13+: explicitly allow the header through to CGI/PHP.
+<IfModule mod_php.c>
+    CGIPassAuth On
+</IfModule>
+<IfModule mod_php8.c>
+    CGIPassAuth On
+</IfModule>
+
+# Fallback for setups where CGIPassAuth isn't available: re-expose the
+# header as an environment variable PHP can read.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP:Authorization} ^(.*)
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+</IfModule>
